@@ -35,13 +35,13 @@ switch($mybb->input['action'])
 function trader_give_rep($uid=1)
 {
     global $mybb, $db, $tradefeedbackform, $mypostkey, $templates, $header, $headerinclude, $footer;
-    $uid = intval($mybb->input['uid']);
+    $uid = intval($uid);
     $action = "give";
     if($mybb->user['uid'] == $uid)
     {
         error("You can't give yourself a rep.");
     }
-    if(!$mybb->input['uid'])
+    if(!$uid)
     {
         error("Invalid user.");
     }
@@ -61,8 +61,8 @@ function trader_give_rep($uid=1)
         "approved" => 1,
         "value" => intval($mybb->input['value']),
         "type" => $db->escape_string($mybb->input['type']),
-        "threadlink" => $db->escape_string(htmlspecialchars_uni($mybb->input['threadlink'])),
-        "comments" => $db->escape_string(htmlspecialchars_uni($mybb->input['comments']))
+        "threadlink" => $db->escape_string($mybb->input['threadlink']),
+        "comments" => $db->escape_string($mybb->input['comments'])
         );
         if($mybb->settings['trade_approval'] == 1 && $mybb->usergroup['canmodcp'] == 0)
         {
@@ -88,9 +88,11 @@ function trader_give_rep($uid=1)
         // Get the member username for confirmation
         $query = $db->simple_select("users", "uid, username", "uid=$uid");
         $member = $db->fetch_array($query);
-        add_breadcrumb($member['username'] . "'s Profile", "member.php?action=profile&uid=$uid");
+		$member['username'] = htmlspecialchars_uni($member['username']);
+        add_breadcrumb($member['username'] . "'s Profile", get_profile_link($uid));
         add_breadcrumb($member['username'] . "'s Reputations", "tradefeedback.php?action=view&uid=$uid");
         add_breadcrumb("Giving Reputation", "tradefeedback.php?action=give&uid=$uid");
+		$feedback = array('comments' => htmlspecialchars_uni($mybb->input['comments']));
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
     }
@@ -106,7 +108,7 @@ function trader_view_rep($uid=1)
     }
     if(!$uid)
     {
-        $uid = 1;
+        error("Invalid user.");
     }
     add_breadcrumb("Trade Feedback", "tradefeedback.php?action=view&uid=$uid");
     if($mybb->input['fid'])
@@ -190,7 +192,7 @@ function trader_view_rep($uid=1)
         $feedback['dateline'] = my_date($mybb->settings['dateformat'], $feedback['dateline'], "", 0);
         if($feedback['threadlink'] && $mybb->input['fid'])
         {
-            $threadlink = "<br /><a href=\"".$feedback['threadlink']."\" target=\"_blank\">Thread Link</a>";
+            $threadlink = "<br /><a href=\"".htmlspecialchars_uni($feedback['threadlink'])."\" target=\"_blank\">Thread Link</a>";
         }
         if($feedback['value'] == 1)
         {
@@ -233,6 +235,7 @@ function trader_view_rep($uid=1)
         {
             eval("\$report = \"".$templates->get("tradefeedback_report")."\";");
         }
+		$feedback['comments'] = htmlspecialchars_uni($feedback['comments']);
         eval("\$tradefeedback .= \"".$templates->get("tradefeedback_view_rep")."\";");
         unset($threadlink);
         unset($detaillink);
@@ -308,7 +311,7 @@ function trader_report($fid)
     $userid = $feedback['receiver'];
     if($mybb->request_method == "post" && verify_post_check($mybb->input['my_post_key']))
     {
-        $emailmessage = "The following feedback has been reported by " . $mybb->user['username']. ":\n<a href=\"".$mybb->settings['bburl']."/tradefeedback.php?action=view&uid=".$feedback['receiver']."&fid=$fid\"\nReason:".htmlspecialchars($mybb->input['reason']);
+        $emailmessage = "The following feedback has been reported by " . $mybb->user['username']. ":\n<a href=\"".$mybb->settings['bburl']."/tradefeedback.php?action=view&uid=".$feedback['receiver']."&fid=$fid\"\nReason:".htmlspecialchars_uni($mybb->input['reason']);
         // Now fetch the global mods
         $query =$db->query("SELECT u.email, ug.gid FROM " . TABLE_PREFIX . "users u
         LEFT JOIN " . TABLE_PREFIX ."usergroups ug ON(u.usergroup=ug.gid)
@@ -396,8 +399,8 @@ function trader_edit($fid)
         "approved" => 1,
         "value" => intval($mybb->input['value']),
         "type" => $db->escape_string($mybb->input['type']),
-        "threadlink" => $db->escape_string(htmlspecialchars_uni($mybb->input['threadlink'])),
-        "comments" => $db->escape_string(htmlspecialchars_uni($mybb->input['comments']))
+        "threadlink" => $db->escape_string($mybb->input['threadlink']),
+        "comments" => $db->escape_string($mybb->input['comments'])
         );
         $db->update_query("trade_feedback", $edit_rep, "fid=$fid");
         trader_rebuild_reputation($uid);
@@ -430,9 +433,8 @@ function trader_edit($fid)
             default:
             break;
         }
+		$feedback = htmlspecialchars_uni($mybb->input['comments']);
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
     }
 }
-
-?>
