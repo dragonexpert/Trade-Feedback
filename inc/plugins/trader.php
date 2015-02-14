@@ -270,6 +270,7 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
         global $mybb, $templates, $traderinfo, $db, $memprofile;
         $memprofile['totalrep'] = $memprofile['posreps'] - $memprofile['negreps'];
         $memprofile['repcount'] = $memprofile['posreps'] + $memprofile['neutreps'] + $memprofile['negreps'];
+		$feedbacklink = '';
         if($mybb->user['uid'] && !$mybb->user['isbannedgroup'])
         {
             eval("\$feedbacklink = \"".$templates->get("member_profile_trade_feedback_link")."\";");
