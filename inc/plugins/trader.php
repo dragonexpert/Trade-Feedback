@@ -4,7 +4,7 @@
     # Option to moderate, default no moderation required
 
     $plugins->add_hook("postbit", "trader_postbit");
-    $plugins->add_hook("member_profile_start", "trader_member_profile");
+    $plugins->add_hook("member_profile_end", "trader_member_profile");
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
@@ -267,12 +267,10 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 
     function trader_member_profile()
     {
-        global $mybb, $templates, $traderinfo, $db;
-        $userid = intval($mybb->input['uid']);
-        $query = $db->simple_select("users", "username, posreps, neutreps, negreps", "uid=$userid");
-        $memprofile = $db->fetch_array($query);
+        global $mybb, $templates, $traderinfo, $db, $memprofile;
         $memprofile['totalrep'] = $memprofile['posreps'] - $memprofile['negreps'];
         $memprofile['repcount'] = $memprofile['posreps'] + $memprofile['neutreps'] + $memprofile['negreps'];
+		$feedbacklink = '';
         if($mybb->user['uid'] && !$mybb->user['isbannedgroup'])
         {
             eval("\$feedbacklink = \"".$templates->get("member_profile_trade_feedback_link")."\";");
