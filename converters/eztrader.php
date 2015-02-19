@@ -2,7 +2,8 @@
 /* This file converts trade feedback from EZTrader to this sytem.*/
 define("IN_MYBB", 1);
 define("NO_ONLINE", 1);
-define("THIS_SCRIPT", "converter.php");
+define("THIS_SCRIPT", "eztrader.php");
+define("NO_PLUGINS", 1);
 require_once "global.php";
 if($mybb->usergroup['cancp'] == 0)
 {
