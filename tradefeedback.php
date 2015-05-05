@@ -433,7 +433,7 @@ function trader_edit($fid)
             default:
             break;
         }
-		$feedback = htmlspecialchars_uni($mybb->input['comments']);
+		$feedback['comments'] = htmlspecialchars_uni($mybb->input['comments']);
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
     }
