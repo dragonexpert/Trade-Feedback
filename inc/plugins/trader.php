@@ -8,6 +8,7 @@
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
+    $plugins->add_hook("showthread_end", "trader_showthread");
 
     function trader_info()
     {
@@ -135,7 +136,7 @@ Rating: <select name="value">
 <option value="-1">Negative</option>
 </select>
 <br />
-Link to thread: <input type="text" name="threadlink" />
+Link to thread: <input type="text" name="threadlink" value="{$threadlink_value}" />
 <br />
 Comments: <textarea name="comments" rows="5" cols="70">{$feedback[\'comments\']}</textarea>
 <br />
@@ -236,11 +237,17 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 <td class="{$tdclass}">{$report}{$modbit}<br /></td>
 </tr>';
 
+$new_template['tradefeedback_showthread_link'] = '<li style="background-image: url(../../../images/buttons_sprite.png); background-repeat: no-repeat;background-position: 0 -20px;"><a href="tradefeedback.php?action=give&amp;uid={$thread[\'uid\']}&amp;tid={$tid}">Leave feedback for {$thread[\'username\']}</a></li>';
+
         foreach($new_template as $title => $template)
 	    {
 	    	$new_template = array('title' => $db->escape_string($title), 'template' => $db->escape_string($template), 'sid' => '-1', 'version' => '1600', 'dateline' => TIME_NOW);
 	    	$db->insert_query('templates', $new_template);
 	    }
+
+        // Add Trade Feedback link to showthread template
+        include MYBB_ROOT."/inc/adminfunctions_templates.php";
+        find_replace_templatesets("showthread", "#".preg_quote('{$add_remove_subscription_text}</a></li>')."#i", '{$add_remove_subscription_text}</a></li>\n{$tradefeedbacklink}');
     }
 
     function trader_deactivate()
@@ -248,6 +255,10 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
         global $db;
         $deletedtemplates = "'member_profile_trade_feedback_link','member_profile_trade_stats','tradefeedback_confirm_delete','tradefeedback_give_form','tradefeedback_mod','tradefeedback_report','tradefeedback_report_form','tradefeedback_view_page','tradefeedback_view_rep'";
         $db->delete_query("templates", "title IN(".$deletedtemplates.")");
+
+        // Remove Trade Feedback Link from showthread template
+        include MYBB_ROOT."/inc/adminfunctions_templates.php";
+        find_replace_templatesets("showthread", "#".preg_quote('{$tradefeedbacklink}')."#i", '', 0);
     }
 
     function trader_uninstall()
@@ -356,5 +367,15 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 		{
 			$pminfo = $pmhandler->insert_pm();
 		}
+    }
+
+    // Show feedback link in show thread
+    function trader_showthread() {
+        global $mybb, $templates, $tradefeedbacklink, $tid, $thread;
+        $tradefeedbacklink = '';
+        if($mybb->user['uid'] && !$mybb->user['isbannedgroup'])
+        {
+            eval("\$tradefeedbacklink = \"".$templates->get("tradefeedback_showthread_link")."\";");
+        }
     }
 ?>

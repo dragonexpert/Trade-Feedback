@@ -85,13 +85,25 @@ function trader_give_rep($uid=1)
     }
     else
     {
+        // Check if we have a thread id
+        $tid = intval($mybb->input['tid']);
+        if($tid) {
+            $threadlink_value = $tid;
+            $query = $db->simple_select("threads","subject","tid=$tid");
+            $thread_subject = $db->fetch_field($query,"subject");
+            $breadcrumb = " for Thread: ".$thread_subject;
+        }
+        else {
+            $threadlink_value = "";
+        }
+
         // Get the member username for confirmation
         $query = $db->simple_select("users", "uid, username", "uid=$uid");
         $member = $db->fetch_array($query);
 		$member['username'] = htmlspecialchars_uni($member['username']);
         add_breadcrumb($member['username'] . "'s Profile", get_profile_link($uid));
         add_breadcrumb($member['username'] . "'s Reputations", "tradefeedback.php?action=view&uid=$uid");
-        add_breadcrumb("Giving Reputation", "tradefeedback.php?action=give&uid=$uid");
+        add_breadcrumb("Giving Reputation".$breadcrumb, "tradefeedback.php?action=give&uid=$uid");
 		$feedback = array('comments' => htmlspecialchars_uni($mybb->input['comments']));
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
