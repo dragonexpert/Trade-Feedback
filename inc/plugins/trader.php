@@ -9,6 +9,7 @@
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
     $plugins->add_hook("showthread_end", "trader_showthread");
+    $plugins->add_hook("global_start", "trader_alertregister");
 
     function trader_info()
     {
@@ -47,6 +48,29 @@
         ADD posreps INT UNSIGNED DEFAULT 0,
         ADD neutreps INT UNSIGNED DEFAULT 0,
         ADD negreps INT UNSIGNED DEFAULT 0");
+
+        // MyAlerts Integration
+        // Check if MyAlerts exists and is compatible
+        if(function_exists("myalerts_info")){
+            // Load myalerts info into an array
+            $my_alerts_info = myalerts_info();
+            // Set version info to a new var
+            $verify = $my_alerts_info['version'];
+            // If MyAlerts 2.0 or better then do this !!!
+            if($verify >= "2.0.0"){
+                // Load cache data and compare if version is the same or not
+                $myalerts_plugins = $cache->read('mybbstuff_myalerts_alert_types');
+                if($myalerts_plugins['tradefeedback']['code'] != 'tradefeedback'){
+                    $alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::createInstance($db, $cache);
+                    $alertType = new MybbStuff_MyAlerts_Entity_AlertType();
+                    $alertType->setCode("tradefeedback");
+                    $alertType->setEnabled(true);
+                    $alertTypeManager->add($alertType);
+                }
+            }
+        }
+        
+        
     }
 
     function trader_is_installed()
@@ -268,6 +292,21 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
         $db->drop_column("users", "posreps");
         $db->drop_column("users", "neutreps");
         $db->drop_column("users", "negreps");
+        
+
+        // MyAlerts Integration
+        // Check if MyAlerts exists and remove tradefeedback alert
+        if(function_exists("myalerts_info")){
+            // Load myalerts info into an array
+            $my_alerts_info = myalerts_info();
+            // Set version info to a new var
+            $verify = $my_alerts_info['version'];
+            // If MyAlerts 2.0 or better then do this !!!
+            if($verify >= "2.0.0"){
+                $alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::getInstance();
+                $alertTypeManager->deleteByCode("tradefeedback");
+            }
+        }
     }
 
     function trader_postbit(&$post)
@@ -378,4 +417,64 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
             eval("\$tradefeedbacklink = \"".$templates->get("tradefeedback_showthread_link")."\";");
         }
     }
+
+    // MyAlerts Formatter Register
+    function trader_alertregister() {
+        global $mybb, $lang;
+        
+        if($mybb->user['uid']) {
+            $lang->load('tradefeedback');
+
+            $code = 'tradefeedback';
+            $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
+            $formatterManager->registerFormatter(new TradeFeedbackFormatter($mybb, $lang, $code));
+        }
+    }  
+
+    // MyAlerts Function
+    function trader_myalerts($toid, $fid)
+    {
+        
+        $alertType = MybbStuff_MyAlerts_AlertTypeManager::getInstance()->getByCode('tradefeedback');
+        $alert = new MybbStuff_MyAlerts_Entity_Alert($toid, $alertType, 0);
+                $alert->setExtraDetails(
+                array(
+                    'toid'       => $toid,
+                    'fid'       => $fid                
+                )); 
+        MybbStuff_MyAlerts_AlertManager::getInstance()->addAlert($alert);
+    }
+
+    // MyAlerts Trade Feedback Formatter
+    if(class_exists("MybbStuff_MyAlerts_Formatter_AbstractFormatter")){
+
+        class TradeFeedbackFormatter extends MybbStuff_MyAlerts_Formatter_AbstractFormatter
+        {
+            public function formatAlert(MybbStuff_MyAlerts_Entity_Alert $alert, array $outputAlert)
+            {
+                return $this->lang->sprintf(
+                    $this->lang->myalerts_tradefeedback,
+                    $outputAlert['from_user'],
+                    $outputAlert['dateline']
+                    );
+            }
+
+            public function init()
+            {
+                if (!$this->lang->tradefeedback) {
+                    $this->lang->load('tradefeedback');
+                }
+            }
+
+            public function buildShowLink(MybbStuff_MyAlerts_Entity_Alert $alert)
+            {
+                $alertContent = $alert->getExtraDetails();
+                $feedbackLink = $this->mybb->settings['bburl'] . '/tradefeedback.php?action=view&uid='.$mybb->user['uid'].'&fid='.$alertContent['fid'];
+
+                return $feedbackLink;
+
+            }
+        }
+    }
+
 ?>
