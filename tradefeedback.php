@@ -71,6 +71,7 @@ function trader_give_rep($uid=1)
         $db->insert_query("trade_feedback", $new_rep);
         $fid = $db->insert_id();
         trader_send_pm($new_rep['receiver'], $fid);
+        trader_myalerts($new_rep['receiver'], $fid);
         if($new_rep['approved'] == 1)
         {
             trader_rebuild_reputation($uid);
