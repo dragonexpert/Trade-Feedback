@@ -89,7 +89,7 @@ function trader_give_rep($uid=1)
         // Check if we have a thread id
         $tid = intval($mybb->input['tid']);
         if($tid) {
-            $threadlink_value = $tid;
+            $threadlink_value = $mybb->settings['bburl']."/".get_thread_link($tid);
             $query = $db->simple_select("threads","subject","tid=$tid");
             $thread_subject = $db->fetch_field($query,"subject");
             $breadcrumb = " for Thread: ".$thread_subject;
