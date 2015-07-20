@@ -320,7 +320,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
 
         // Feedback Button
         $post['button_tradefeedback'] = '';
-        if($mybb->user['uid'] && !$mybb->user['isbannedgroup'] && $mybb->user['uid'] != $post['uid'])
+        if($mybb->user['uid'] && !$mybb->usergroup['isbannedgroup'] && $mybb->user['uid'] != $post['uid'])
         {
             eval("\$post['button_tradefeedback'] = \"".$templates->get("tradefeedback_postbit_link")."\";");
         }
@@ -332,7 +332,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         $memprofile['totalrep'] = $memprofile['posreps'] - $memprofile['negreps'];
         $memprofile['repcount'] = $memprofile['posreps'] + $memprofile['neutreps'] + $memprofile['negreps'];
 		$feedbacklink = '';
-        if($mybb->user['uid'] && !$mybb->user['isbannedgroup'])
+        if($mybb->user['uid'] && !$mybb->usergroup['isbannedgroup'])
         {
             eval("\$feedbacklink = \"".$templates->get("member_profile_trade_feedback_link")."\";");
         }
