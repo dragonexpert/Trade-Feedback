@@ -123,7 +123,7 @@ function trader_view_rep($uid=1)
     {
         error("Invalid user.");
     }
-    add_breadcrumb("Trade Feedback", "tradefeedback.php?action=view&uid=$uid");
+
     if($mybb->input['fid'])
     {
         $colspan = 5;
@@ -162,6 +162,8 @@ function trader_view_rep($uid=1)
     $userquery = $db->simple_select("users", "username, posreps, neutreps, negreps", "uid=$uid");
     $feedback = $db->fetch_array($userquery);
     $receiverusername = $feedback['username'];
+	add_breadcrumb($receiverusername . "'s Profile", "member.php?action=profile&uid=$uid");
+	add_breadcrumb("Trade Feedback for $receiverusername", "tradefeedback.php?action=view&uid=$uid");
     $posreps = $feedback['posreps'];
     $neutreps = $feedback['neutreps'];
     $negreps = $feedback['negreps'];
