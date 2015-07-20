@@ -89,7 +89,7 @@ function trader_give_rep($uid=1)
         // Check if we have a thread id
         $tid = intval($mybb->input['tid']);
         if($tid) {
-            $threadlink_value = $tid;
+            $threadlink_value = $mybb->settings['bburl']."/".get_thread_link($tid);
             $query = $db->simple_select("threads","subject","tid=$tid");
             $thread_subject = $db->fetch_field($query,"subject");
             $breadcrumb = " for Thread: ".$thread_subject;
@@ -324,16 +324,19 @@ function trader_report($fid)
     $userid = $feedback['receiver'];
     if($mybb->request_method == "post" && verify_post_check($mybb->input['my_post_key']))
     {
-        $emailmessage = "The following feedback has been reported by " . $mybb->user['username']. ":\n<a href=\"".$mybb->settings['bburl']."/tradefeedback.php?action=view&uid=".$feedback['receiver']."&fid=$fid\"\nReason:".htmlspecialchars_uni($mybb->input['reason']);
-        // Now fetch the global mods
-        $query =$db->query("SELECT u.email, ug.gid FROM " . TABLE_PREFIX . "users u
-        LEFT JOIN " . TABLE_PREFIX ."usergroups ug ON(u.usergroup=ug.gid)
-        WHERE ug.canmodcp=1 AND ug.issupermod=1");
-        while($moderator = $db->fetch_array($query))
-        {
-            my_mail($moderator['email'], "Reported Reputation on " . $mybb->settings['bbname'], $emailmessage);
-        }
+        // Report Center Integration
+        require_once MYBB_ROOT.'inc/functions_modcp.php';
+        $new_report = array(
+            'id' => $fid, // Feedback ID
+            'id2' => $mybb->user['uid'], // id2 is the user who gave the feedback
+            'id3' => $feedback['receiver'], // id3 is the user who received the feedback
+            'uid' => $mybb->user['uid'],
+            'reason' => htmlspecialchars_uni($mybb->input['reason'])
+        );
+        add_report($new_report, "tradefeedback");
+
         $db->write_query("UPDATE ". TABLE_PREFIX . "trade_feedback SET reported=1 WHERE fid=$fid");
+
         $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
         $message = "The rep has been reported.";
         redirect($url, $message);

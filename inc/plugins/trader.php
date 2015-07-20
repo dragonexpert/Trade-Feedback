@@ -8,8 +8,8 @@
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
-    $plugins->add_hook("showthread_end", "trader_showthread");
     $plugins->add_hook("global_start", "trader_alertregister");
+    $plugins->add_hook('modcp_reports_report', 'trader_modcp_reports_report');
 
     function trader_info()
     {
@@ -261,7 +261,7 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 <td class="{$tdclass}">{$report}{$modbit}<br /></td>
 </tr>';
 
-$new_template['tradefeedback_showthread_link'] = '<li style="background-image: url(../../../images/buttons_sprite.png); background-repeat: no-repeat;background-position: 0 -20px;"><a href="tradefeedback.php?action=give&amp;uid={$thread[\'uid\']}&amp;tid={$tid}">Leave feedback for {$thread[\'username\']}</a></li>';
+$new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action=give&amp;uid={$post[\'uid\']}&amp;tid={$post[\'tid\']}" title="Give Feedback" class="postbit_tradefeedback"><span>Give Feedback</span></a>';
 
         foreach($new_template as $title => $template)
 	    {
@@ -271,7 +271,8 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
 
         // Add Trade Feedback link to showthread template
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
-        find_replace_templatesets("showthread", "#".preg_quote('{$add_remove_subscription_text}</a></li>')."#i", '{$add_remove_subscription_text}</a></li>\n{$tradefeedbacklink}');
+        find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
+        find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
     }
 
     function trader_deactivate()
@@ -282,7 +283,8 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
 
         // Remove Trade Feedback Link from showthread template
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
-        find_replace_templatesets("showthread", "#".preg_quote('{$tradefeedbacklink}')."#i", '', 0);
+        find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
+        find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
     }
 
     function trader_uninstall()
@@ -311,8 +313,17 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
 
     function trader_postbit(&$post)
     {
+        global $mybb, $templates;
+
         $post['totalrep'] = $post['posreps'] - $post['negreps'];
         $post['repcount'] = $post['posreps'] + $post['neutreps'] + $post['negreps'];
+
+        // Feedback Button
+        $post['button_tradefeedback'] = '';
+        if($mybb->user['uid'] && !$mybb->user['isbannedgroup'] && $mybb->user['uid'] != $post['uid'])
+        {
+            eval("\$post['button_tradefeedback'] = \"".$templates->get("tradefeedback_postbit_link")."\";");
+        }
     }
 
     function trader_member_profile()
@@ -408,16 +419,6 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
 		}
     }
 
-    // Show feedback link in show thread
-    function trader_showthread() {
-        global $mybb, $templates, $tradefeedbacklink, $tid, $thread;
-        $tradefeedbacklink = '';
-        if($mybb->user['uid'] && !$mybb->user['isbannedgroup'])
-        {
-            eval("\$tradefeedbacklink = \"".$templates->get("tradefeedback_showthread_link")."\";");
-        }
-    }
-
     // MyAlerts Formatter Register
     function trader_alertregister() {
         global $mybb, $lang;
@@ -475,6 +476,26 @@ $new_template['tradefeedback_showthread_link'] = '<li style="background-image: u
 
             }
         }
+    }
+
+    // Report Center Integration
+    function trader_modcp_reports_report()
+    {
+        global $report;
+
+        if($report['type'] != 'tradefeedback')
+        {
+            return;
+        }
+
+        global $mybb, $reputation_link, $bad_user, $lang, $good_user, $usercache, $report_data;
+
+        $user = get_user($report['id3']);
+
+        $reputation_link = $mybb->settings['bburl']."/tradefeedback.php?action=view&uid={$user['uid']}&amp;fid={$report['id']}";
+        $bad_user = build_profile_link($usercache[$report['id2']]['username'], $usercache[$report['id2']]['uid']);
+        $good_user = build_profile_link($user['username'], $user['uid']);
+        $report_data['content'] = $lang->sprintf($lang->tradefeedback_report_info, $reputation_link, $bad_user, $good_user);
     }
 
 ?>
