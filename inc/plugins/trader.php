@@ -9,27 +9,27 @@
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
     $plugins->add_hook("global_start", "trader_alertregister");
-    $plugins->add_hook('modcp_reports_report', 'trader_modcp_reports_report');
-    $plugins->add_hook("modcp_allreports_report", 'trader_modcp_allreports_report');
+    $plugins->add_hook("modcp_reports_report", "trader_modcp_reports_report");
+    $plugins->add_hook("admin_config_plugins_begin", "trader_update");
 
     function trader_info()
     {
         return array(
 		"name"		=> "Trader",
-		"description"		=> "A trade reputation system with high performance.",
+		"description"		=> "A trade reputation system with high performance.  <a href='index.php?module=config-plugins&action=update_trader_plugin'>Click here</a> to update your database.",
 		"website"		=> "",
 		"author"		=> "Mark Janssen",
 		"authorsite"		=> "",
-		"version"		=> "1.0",
-		"guid" 			=> "",
-		"compatibility"	=> "16*, 18*"
+		"version"		=> "3.0",
+		"codename" 			=> "trade_feedback",
+		"compatibility"	=> "18*"
 		);
     }
 
     function trader_install()
     {
         global $db, $cache;
-        $db->query("CREATE TABLE " . TABLE_PREFIX . "trade_feedback (
+        $db->write_query("CREATE TABLE " . TABLE_PREFIX . "trade_feedback (
         `fid` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `giver` INT UNSIGNED DEFAULT 1,
         `receiver` INT UNSIGNED NOT NULL DEFAULT 1,
@@ -40,15 +40,25 @@
         `value` TINYINT(1) DEFAULT 0,
         `reported` TINYINT(1) DEFAULT 0,
         `threadlink` TEXT,
+        `tid` INT NOT NULL DEFAULT 0,
+        `fid` INT NOT NULL DEFAULT 0,
         KEY giver(giver),
         KEY receiver(receiver)
         ) ENGINE=Innodb " . $db->build_create_table_collation());
 
         // Now alter the users table
-        $db->query("ALTER TABLE " . TABLE_PREFIX . "users 
+        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "users 
         ADD posreps INT UNSIGNED DEFAULT 0,
         ADD neutreps INT UNSIGNED DEFAULT 0,
         ADD negreps INT UNSIGNED DEFAULT 0");
+
+        // Usergroup Permissions
+        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "usergroups
+        ADD cantradefeedback INT UNSIGNED DEFAULT 1");
+
+        // Banned usergroups can't leave feedback
+        $db->write_query("UPDATE " . TABLE_PREFIX . "usergroups SET cantradefeedback=0 WHERE isbannedgroup=1");
+        $cache->update_usergroups();
 
         // MyAlerts Integration
         // Check if MyAlerts exists and is compatible
@@ -499,24 +509,41 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         $report_data['content'] = $lang->sprintf($lang->tradefeedback_report_info, $reputation_link, $bad_user, $good_user);
     }
 
-    function trader_modcp_allreports_report()
+    // Update from the ACP
+    function trader_update()
     {
-        global $report;
-
-        if($report['type'] != 'tradefeedback')
+        global $db, $cache;
+        if($mybb->get_input("action") != "update_trader_plugin")
         {
             return;
         }
+        $dbtables = array(
+        "trade_feedback" => array(
+        "tid" => "INT UNSIGNED NOT NULL DEFAULT 0",
+        "fid" => "INT UNSIGNED NOT NULL DEFAULT 0"
+        ),
+        "usergroups" => array(
+        "cantradefeedback" => "INT UNSIGNED NOT NULL DEFAULT 1"
+        )
+        );
 
-        global $mybb, $reputation_link, $bad_user, $lang, $good_user, $report_data;
-
-        $user = get_user($report['id3']);
-        $bad_user_info = get_user($report['id2']);
-
-        $reputation_link = $mybb->settings['bburl']."/tradefeedback.php?action=view&uid={$user['uid']}&amp;fid={$report['id']}";
-        $bad_user = build_profile_link($bad_user_info['username'], $bad_user_info['uid']);
-        $good_user = build_profile_link($user['username'], $user['uid']);
-        $report_data['content'] = $lang->sprintf($lang->tradefeedback_report_info, $reputation_link, $bad_user, $good_user);
+        foreach($dbtables as $table => $value)
+        {
+            if(!$db->table_exists($table))
+            {
+                $db->query("CREATE TABLE " . TABLE_PREFIX . $table . " ( `id` INT NOT NULL DEFAULT 0 ) ENGINE=Innodb " . $db->build_create_table_collation());
+ 
+            }
+           	$tablekeys = array_keys($value);
+            foreach($tablekeys as $key)
+            {
+                if(!$db->field_exists($key, $table))
+                {
+                    $db->write_query("ALTER TABLE " . TABLE_PREFIX . $table . " ADD " . $key . " " . $dbtables[$table][$key]);
+                }
+            }
+        }
+        flash_message("Trade Feedback has been updated.", "success");
+        admin_redirect("index.php?module=config-plugins");
     }
-
 ?>
