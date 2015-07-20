@@ -10,6 +10,7 @@
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
     $plugins->add_hook("global_start", "trader_alertregister");
     $plugins->add_hook('modcp_reports_report', 'trader_modcp_reports_report');
+    $plugins->add_hook("modcp_allreports_report", 'trader_modcp_allreports_report');
 
     function trader_info()
     {
@@ -494,6 +495,26 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
 
         $reputation_link = $mybb->settings['bburl']."/tradefeedback.php?action=view&uid={$user['uid']}&amp;fid={$report['id']}";
         $bad_user = build_profile_link($usercache[$report['id2']]['username'], $usercache[$report['id2']]['uid']);
+        $good_user = build_profile_link($user['username'], $user['uid']);
+        $report_data['content'] = $lang->sprintf($lang->tradefeedback_report_info, $reputation_link, $bad_user, $good_user);
+    }
+
+    function trader_modcp_allreports_report()
+    {
+        global $report;
+
+        if($report['type'] != 'tradefeedback')
+        {
+            return;
+        }
+
+        global $mybb, $reputation_link, $bad_user, $lang, $good_user, $report_data;
+
+        $user = get_user($report['id3']);
+        $bad_user_info = get_user($report['id2']);
+
+        $reputation_link = $mybb->settings['bburl']."/tradefeedback.php?action=view&uid={$user['uid']}&amp;fid={$report['id']}";
+        $bad_user = build_profile_link($bad_user_info['username'], $bad_user_info['uid']);
         $good_user = build_profile_link($user['username'], $user['uid']);
         $report_data['content'] = $lang->sprintf($lang->tradefeedback_report_info, $reputation_link, $bad_user, $good_user);
     }
