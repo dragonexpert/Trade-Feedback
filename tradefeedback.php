@@ -39,7 +39,7 @@ function trader_give_rep($uid=1)
     $action = "give";
     if($mybb->user['uid'] == $uid)
     {
-        error("You can't give yourself a rep.");
+        error("You can't give yourself feedback.");
     }
     if(!$uid)
     {
@@ -82,14 +82,14 @@ function trader_give_rep($uid=1)
             $message = "Your feedback is awaiting approval from the forum administration.";
         }
         $url = $mybb->settings['bburl']. "/tradefeedback.php?action=view&uid=$uid";
-        redirect($url, $message);
+        redirect($url, $message, "", true);
     }
     else
     {
         // Check if we have a thread id
         $tid = intval($mybb->input['tid']);
         if($tid) {
-            $threadlink_value = $tid;
+            $threadlink_value = $mybb->settings['bburl']."/".get_thread_link($tid);
             $query = $db->simple_select("threads","subject","tid=$tid");
             $thread_subject = $db->fetch_field($query,"subject");
             $breadcrumb = " for Thread: ".$thread_subject;
@@ -103,8 +103,8 @@ function trader_give_rep($uid=1)
         $member = $db->fetch_array($query);
 		$member['username'] = htmlspecialchars_uni($member['username']);
         add_breadcrumb($member['username'] . "'s Profile", get_profile_link($uid));
-        add_breadcrumb($member['username'] . "'s Reputations", "tradefeedback.php?action=view&uid=$uid");
-        add_breadcrumb("Giving Reputation".$breadcrumb, "tradefeedback.php?action=give&uid=$uid");
+        add_breadcrumb($member['username'] . "'s Feedback", "tradefeedback.php?action=view&uid=$uid");
+        add_breadcrumb("Giving Feedback".$breadcrumb, "tradefeedback.php?action=give&uid=$uid");
 		$feedback = array('comments' => htmlspecialchars_uni($mybb->input['comments']));
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
@@ -123,7 +123,7 @@ function trader_view_rep($uid=1)
     {
         error("Invalid user.");
     }
-    add_breadcrumb("Trade Feedback", "tradefeedback.php?action=view&uid=$uid");
+
     if($mybb->input['fid'])
     {
         $colspan = 5;
@@ -162,6 +162,8 @@ function trader_view_rep($uid=1)
     $userquery = $db->simple_select("users", "username, posreps, neutreps, negreps", "uid=$uid");
     $feedback = $db->fetch_array($userquery);
     $receiverusername = $feedback['username'];
+	add_breadcrumb($receiverusername . "'s Profile", "member.php?action=profile&uid=$uid");
+	add_breadcrumb("Trade Feedback for $receiverusername", "tradefeedback.php?action=view&uid=$uid");
     $posreps = $feedback['posreps'];
     $neutreps = $feedback['neutreps'];
     $negreps = $feedback['negreps'];
@@ -209,15 +211,15 @@ function trader_view_rep($uid=1)
         }
         if($feedback['value'] == 1)
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/smile.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/smile.png";
         }
         else if($feedback['value'] == 0)
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/undecided.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/undecided.png";
         }
         else
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/angry.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/angry.png";
         }
         $feedback['type'] = ucfirst($feedback['type']);
         if($mybb->usergroup['canmodcp'] && $mybb->usergroup['issupermod'])
@@ -263,7 +265,7 @@ function trader_delete_rep($fid)
     $fid = intval($fid);
     if(!$fid)
     {
-        error("Invalid rep");
+        error("Invalid action");
     }
     if($mybb->usergroup['canmodcp'] == 0)
     {
@@ -272,7 +274,7 @@ function trader_delete_rep($fid)
     $query = $db->simple_select("trade_feedback", "receiver", "fid=$fid");
     if($db->num_rows($query) == 0)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     $userid = $db->fetch_field($query, "receiver");
     if($mybb->request_method == "post" && verify_post_check($mybb->input['my_post_key']))
@@ -282,14 +284,14 @@ function trader_delete_rep($fid)
             $db->delete_query("trade_feedback", "fid=$fid");
             trader_rebuild_reputation($userid);
             $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
-            $message = "The rep has been deleted.";
-            redirect($url, $message);
+            $message = "The feedback has been deleted.";
+            redirect($url, $message, "", true);
         }
         else
         {
             $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
             $message = "You are being returned to where you came from.";
-            redirect($url, $message);
+            redirect($url, $message, "", true);
         }
     }
     else
@@ -305,38 +307,41 @@ function trader_report($fid)
     $fid = intval($fid);
     if(!$fid)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     if(!$mybb->user['uid'] || $mybb->usergroup['isbannedgroup'] == 1)
     {
         error_no_permission();
     }
-    $query = $db->simple_select("trade_feedback", "receiver,reported", "fid=$fid");
+    $query = $db->simple_select("trade_feedback", "receiver,giver,reported", "fid=$fid");
     if($db->num_rows($query) == 0)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     $feedback = $db->fetch_array($query);
     if($feedback['reported'] == 1)
     {
-        error("This rep has already been reported.");
+        error("This feedback has already been reported.");
     }
     $userid = $feedback['receiver'];
     if($mybb->request_method == "post" && verify_post_check($mybb->input['my_post_key']))
     {
-        $emailmessage = "The following feedback has been reported by " . $mybb->user['username']. ":\n<a href=\"".$mybb->settings['bburl']."/tradefeedback.php?action=view&uid=".$feedback['receiver']."&fid=$fid\"\nReason:".htmlspecialchars_uni($mybb->input['reason']);
-        // Now fetch the global mods
-        $query =$db->query("SELECT u.email, ug.gid FROM " . TABLE_PREFIX . "users u
-        LEFT JOIN " . TABLE_PREFIX ."usergroups ug ON(u.usergroup=ug.gid)
-        WHERE ug.canmodcp=1 AND ug.issupermod=1");
-        while($moderator = $db->fetch_array($query))
-        {
-            my_mail($moderator['email'], "Reported Reputation on " . $mybb->settings['bbname'], $emailmessage);
-        }
+        // Report Center Integration
+        require_once MYBB_ROOT.'inc/functions_modcp.php';
+        $new_report = array(
+            'id' => $fid, // Feedback ID
+            'id2' => $feedback['giver'], // id2 is the user who gave the feedback
+            'id3' => $feedback['receiver'], // id3 is the user who received the feedback
+            'uid' => $mybb->user['uid'],
+            'reason' => htmlspecialchars_uni($mybb->input['reason'])
+        );
+        add_report($new_report, "tradefeedback");
+
         $db->write_query("UPDATE ". TABLE_PREFIX . "trade_feedback SET reported=1 WHERE fid=$fid");
+
         $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
-        $message = "The rep has been reported.";
-        redirect($url, $message);
+        $message = "The trade feedback has been reported.";
+        redirect($url, $message, "", true);
     }
     else
     {
@@ -351,7 +356,7 @@ function trader_approve($fid)
     $fid = intval($fid);
     if(!$fid)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     if($mybb->usergroup['canmodcp'] == 0)
     {
@@ -363,13 +368,13 @@ function trader_approve($fid)
     $userid = $db->fetch_field($query, "receiver");
     if(!$userid)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     $db->write_query("UPDATE " . TABLE_PREFIX . "trade_feedback SET approved=1 WHERE fid=$fid");
     trader_rebuild_reputation($userid);
     $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
-    $message = "The rep has been approved.";
-    redirect($url, $message);
+    $message = "The trade feedback has been approved.";
+    redirect($url, $message, "", true);
 }
 
 function trader_unapprove($fid)
@@ -378,7 +383,7 @@ function trader_unapprove($fid)
     $fid = intval($fid);
     if(!$fid)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     if($mybb->usergroup['canmodcp'] == 0)
     {
@@ -390,13 +395,13 @@ function trader_unapprove($fid)
     $userid = $db->fetch_field($query, "receiver");
     if(!$userid)
     {
-        error("Invalid rep.");
+        error("Invalid action.");
     }
     $db->write_query("UPDATE " . TABLE_PREFIX . "trade_feedback SET approved=0 WHERE fid=$fid");
     trader_rebuild_reputation($userid);
     $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
-    $message = "The rep has been unapproved.";
-    redirect($url, $message);
+    $message = "The trade feedback has been unapproved.";
+    redirect($url, $message, "", true);
 }
 
 function trader_edit($fid)
@@ -419,7 +424,7 @@ function trader_edit($fid)
         trader_rebuild_reputation($uid);
         $message = "The feedback has been updated.";
         $url = $mybb->settings['bburl']. "/tradefeedback.php?action=view&uid=$uid";
-        redirect($url, $message);
+        redirect($url, $message, "", true);
     }
     else
     {
@@ -428,10 +433,10 @@ function trader_edit($fid)
         $member = $db->fetch_array($query);
         add_breadcrumb($member['username'] . "'s Profile", "member.php?action=profile&uid=$uid");
         add_breadcrumb($member['username'] . "'s Reputations", "tradefeedback.php?action=view&uid=$uid");
-        add_breadcrumb("Giving Reputation", "tradefeedback.php?action=give&uid=$uid");
+        add_breadcrumb("Giving Feedback", "tradefeedback.php?action=give&uid=$uid");
         $q2 = $db->simple_select("trade_feedback", "*", "fid=$fid");
         $feedback = $db->fetch_array($q2);
-        $repselect = "<option value=\"".$feedback['value']."\">Leave The Same</option>";
+        $repselect = "<option value=\"".$feedback['value']."\">Leave the same</option>";
         switch($feedback['type'])
         {
             case "buyer":
