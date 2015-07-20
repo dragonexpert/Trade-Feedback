@@ -82,7 +82,7 @@ function trader_give_rep($uid=1)
             $message = "Your feedback is awaiting approval from the forum administration.";
         }
         $url = $mybb->settings['bburl']. "/tradefeedback.php?action=view&uid=$uid";
-        redirect($url, $message);
+        redirect($url, $message, "", true);
     }
     else
     {
@@ -285,13 +285,13 @@ function trader_delete_rep($fid)
             trader_rebuild_reputation($userid);
             $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
             $message = "The feedback has been deleted.";
-            redirect($url, $message);
+            redirect($url, $message, "", true);
         }
         else
         {
             $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
             $message = "You are being returned to where you came from.";
-            redirect($url, $message);
+            redirect($url, $message, "", true);
         }
     }
     else
@@ -341,7 +341,7 @@ function trader_report($fid)
 
         $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
         $message = "The trade feedback has been reported.";
-        redirect($url, $message);
+        redirect($url, $message, "", true);
     }
     else
     {
@@ -374,7 +374,7 @@ function trader_approve($fid)
     trader_rebuild_reputation($userid);
     $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
     $message = "The trade feedback has been approved.";
-    redirect($url, $message);
+    redirect($url, $message, "", true);
 }
 
 function trader_unapprove($fid)
@@ -401,7 +401,7 @@ function trader_unapprove($fid)
     trader_rebuild_reputation($userid);
     $url = $mybb->settings['bburl'] . "/tradefeedback.php?action=view&uid=$userid";
     $message = "The trade feedback has been unapproved.";
-    redirect($url, $message);
+    redirect($url, $message, "", true);
 }
 
 function trader_edit($fid)
@@ -424,7 +424,7 @@ function trader_edit($fid)
         trader_rebuild_reputation($uid);
         $message = "The feedback has been updated.";
         $url = $mybb->settings['bburl']. "/tradefeedback.php?action=view&uid=$uid";
-        redirect($url, $message);
+        redirect($url, $message, "", true);
     }
     else
     {
