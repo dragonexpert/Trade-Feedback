@@ -209,15 +209,15 @@ function trader_view_rep($uid=1)
         }
         if($feedback['value'] == 1)
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/smile.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/smile.png";
         }
         else if($feedback['value'] == 0)
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/undecided.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/undecided.png";
         }
         else
         {
-            $feedback['smilyurl'] = $mybb->settings['bburl'] . "/" . $theme['imgdir'] . "/smilies/angry.gif";
+			$feedback['smilyurl'] = $mybb->settings['bburl'] .  "/images/smilies/angry.png";
         }
         $feedback['type'] = ucfirst($feedback['type']);
         if($mybb->usergroup['canmodcp'] && $mybb->usergroup['issupermod'])
