@@ -533,7 +533,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
     // Update from the ACP
     function trader_update()
     {
-        global $db, $cache;
+        global $db, $cache, $mybb;
         if($mybb->get_input("action") != "update_trader_plugin")
         {
             return;
