@@ -42,7 +42,7 @@
         `reported` TINYINT(1) DEFAULT 0,
         `threadlink` TEXT,
         `tid` INT NOT NULL DEFAULT 0,
-        `fid` INT NOT NULL DEFAULT 0,
+        `forum_id` INT NOT NULL DEFAULT 0,
         KEY giver(giver),
         KEY receiver(receiver)
         ) ENGINE=Innodb " . $db->build_create_table_collation());
@@ -541,7 +541,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         $dbtables = array(
         "trade_feedback" => array(
         "tid" => "INT UNSIGNED NOT NULL DEFAULT 0",
-        "fid" => "INT UNSIGNED NOT NULL DEFAULT 0"
+        "forum_id" => "INT UNSIGNED NOT NULL DEFAULT 0"
         ),
         "usergroups" => array(
         "cantradefeedback" => "INT UNSIGNED NOT NULL DEFAULT 1"
@@ -555,7 +555,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
                 $db->query("CREATE TABLE " . TABLE_PREFIX . $table . " ( `id` INT NOT NULL DEFAULT 0 ) ENGINE=Innodb " . $db->build_create_table_collation());
  
             }
-           	$tablekeys = array_keys($value);
+           $tablekeys = array_keys($value);
             foreach($tablekeys as $key)
             {
                 if(!$db->field_exists($key, $table))
