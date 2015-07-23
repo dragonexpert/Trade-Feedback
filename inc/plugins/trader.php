@@ -8,7 +8,7 @@
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
-    $plugins->add_hook("global_start", "trader_alertregister");
+    $plugins->add_hook("global_start", "trader_alertregister", 0);
     $plugins->add_hook("modcp_reports_report", "trader_modcp_reports_report");
     $plugins->add_hook("modcp_allreports_report", 'trader_modcp_allreports_report');
     $plugins->add_hook("admin_config_plugins_begin", "trader_update");
@@ -30,7 +30,7 @@
     function trader_install()
     {
         global $db, $cache;
-        $db->write_query("CREATE TABLE " . TABLE_PREFIX . "trade_feedback (
+        $db->write_query("CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "trade_feedback (
         `fid` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `giver` INT UNSIGNED DEFAULT 1,
         `receiver` INT UNSIGNED NOT NULL DEFAULT 1,
@@ -48,14 +48,20 @@
         ) ENGINE=Innodb " . $db->build_create_table_collation());
 
         // Now alter the users table
-        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "users 
-        ADD posreps INT UNSIGNED DEFAULT 0,
-        ADD neutreps INT UNSIGNED DEFAULT 0,
-        ADD negreps INT UNSIGNED DEFAULT 0");
+        if(!$db->field_exists("posreps", "users"))
+        {
+            $db->write_query("ALTER TABLE " . TABLE_PREFIX . "users 
+            ADD posreps INT UNSIGNED DEFAULT 0,
+            ADD neutreps INT UNSIGNED DEFAULT 0,
+            ADD negreps INT UNSIGNED DEFAULT 0");
+        }
 
         // Usergroup Permissions
-        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "usergroups
-        ADD cantradefeedback INT UNSIGNED DEFAULT 1");
+        if(!$db->field_exists("cantradefeedback", "usergroups"))
+        {
+            $db->write_query("ALTER TABLE " . TABLE_PREFIX . "usergroups
+            ADD cantradefeedback INT UNSIGNED DEFAULT 1");
+        }
 
         // Banned usergroups can't leave feedback
         $db->write_query("UPDATE " . TABLE_PREFIX . "usergroups SET cantradefeedback=0 WHERE isbannedgroup=1");
@@ -434,13 +440,15 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
     // MyAlerts Formatter Register
     function trader_alertregister() {
         global $mybb, $lang;
-        
-        if($mybb->user['uid']) {
-            $lang->load('tradefeedback');
+        if(class_exists("MybbStuff_MyAlerts_AlertFormatterManager"))
+        {
+            if($mybb->user['uid']) {
+                $lang->load('tradefeedback');
 
-            $code = 'tradefeedback';
-            $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
-            $formatterManager->registerFormatter(new TradeFeedbackFormatter($mybb, $lang, $code));
+                $code = 'tradefeedback';
+                $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
+                $formatterManager->registerFormatter(new TradeFeedbackFormatter($mybb, $lang, $code));
+            }
         }
     }  
 
