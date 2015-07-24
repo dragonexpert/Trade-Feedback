@@ -468,7 +468,8 @@ function trader_edit($fid)
             default:
             break;
         }
-	$feedback['comments'] = htmlspecialchars_uni($feedback['comments']);
+        $threadlink_value = htmlspecialchars_uni($feedback['threadlink']);
+	    $feedback['comments'] = htmlspecialchars_uni($feedback['comments']);
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
     }
