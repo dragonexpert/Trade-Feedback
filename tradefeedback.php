@@ -132,7 +132,7 @@ function trader_view_rep($uid=1)
     else
     {
         $colspan = 6;
-        $detailcolumn = "<th class=\"thead\">Detail</th>";
+        $detailcolumn = "<th class=\"tcat\">Detail</th>";
     }
     $url = "tradefeedback.php?action=view&uid=$uid";
     if(isset($mybb->input['value']))
