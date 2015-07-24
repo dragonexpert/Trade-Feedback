@@ -8,7 +8,7 @@
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
     $plugins->add_hook("build_friendly_wol_location_end", "trader_build_friendly_location");
-    $plugins->add_hook("global_start", "trader_alertregister");
+    $plugins->add_hook("global_start", "trader_alertregister", 0);
     $plugins->add_hook("modcp_reports_report", "trader_modcp_reports_report");
     $plugins->add_hook("modcp_allreports_report", 'trader_modcp_allreports_report');
     $plugins->add_hook("admin_config_plugins_begin", "trader_update");
@@ -30,7 +30,7 @@
     function trader_install()
     {
         global $db, $cache;
-        $db->write_query("CREATE TABLE " . TABLE_PREFIX . "trade_feedback (
+        $db->write_query("CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "trade_feedback (
         `fid` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         `giver` INT UNSIGNED DEFAULT 1,
         `receiver` INT UNSIGNED NOT NULL DEFAULT 1,
@@ -42,20 +42,26 @@
         `reported` TINYINT(1) DEFAULT 0,
         `threadlink` TEXT,
         `tid` INT NOT NULL DEFAULT 0,
-        `fid` INT NOT NULL DEFAULT 0,
+        `forum_id` INT NOT NULL DEFAULT 0,
         KEY giver(giver),
         KEY receiver(receiver)
         ) ENGINE=Innodb " . $db->build_create_table_collation());
 
         // Now alter the users table
-        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "users 
-        ADD posreps INT UNSIGNED DEFAULT 0,
-        ADD neutreps INT UNSIGNED DEFAULT 0,
-        ADD negreps INT UNSIGNED DEFAULT 0");
+        if(!$db->field_exists("posreps", "users"))
+        {
+            $db->write_query("ALTER TABLE " . TABLE_PREFIX . "users 
+            ADD posreps INT UNSIGNED DEFAULT 0,
+            ADD neutreps INT UNSIGNED DEFAULT 0,
+            ADD negreps INT UNSIGNED DEFAULT 0");
+        }
 
         // Usergroup Permissions
-        $db->write_query("ALTER TABLE " . TABLE_PREFIX . "usergroups
-        ADD cantradefeedback INT UNSIGNED DEFAULT 1");
+        if(!$db->field_exists("cantradefeedback", "usergroups"))
+        {
+            $db->write_query("ALTER TABLE " . TABLE_PREFIX . "usergroups
+            ADD cantradefeedback INT UNSIGNED DEFAULT 1");
+        }
 
         // Banned usergroups can't leave feedback
         $db->write_query("UPDATE " . TABLE_PREFIX . "usergroups SET cantradefeedback=0 WHERE isbannedgroup=1");
@@ -99,31 +105,37 @@
     {
         global $db;
         // make the templates
-        $new_template['member_profile_trade_feedback_link'] = '<tr>
-            <td class="trow2" colspan="2"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=give&uid={$mybb->input[\'uid\']}">Leave feedback for {$memprofile[\'username\']}</a></td>
-            </tr>';
+        $new_template['member_profile_trade_feedback_link'] ='<a class="postbit_edit" href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=give&uid={$mybb->input[\'uid\']}"><span>Leave feedback for {$memprofile[\'username\']}</span></a>';
 
-        $new_template['member_profile_trade_stats'] = '<table border="0" class="tborder" width="100%">
-<tr>
-<th class="thead">Trader Feedback</th>
-</tr>
-<tr>
-<td class="trow2">
-<div class="left_feedback">Trade Count:</div>
-<div class="right_feedback">(<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">{$memprofile[\'repcount\']}</a>)</div>
-<br class="clear" />
-<div class="left_feedback">Positive Feedback:</div>
-<div class="right_feedback">(<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&value=1">{$memprofile[\'posreps\']}</a>)</div>
-<br class="clear" />
-<div class="left_feedback">Neutral Feedback:</div>
-<div class="right_feedback">(<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&value=0">{$memprofile[\'neutreps\']}</a>)</div>
-<br class="clear" />
-<div class="left_feedback">Negative Feedback:</div>
-<div class="right_feedback">(<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&value=-1">{$memprofile[\'negreps\']}</a>)</div>
+        $new_template['member_profile_trade_stats'] = '<div class="faux-table">
+<div class="thead cf">
+<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}"><strong>Trader Feedback</strong></a>
+</div>
+
+<div class="feedback">
+<dl>
+  <dt><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">Trade Count</a></dt>
+  <dd><span class="badge"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">{$memprofile[\'repcount\']}</a></span></dd>
+</dl>
+<dl class="positive">
+  <dt><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&value=1">Positive Feedback</a></dt>
+  <dd><span class="badge badge-pos"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&amp;value=1">{$memprofile[\'posreps\']}</a></span></dd>
+</dl>
+<dl class="neutral">
+  <dt><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&amp;value=0">Neutral Feedback</a></dt>
+  <dd><span class="badge badge-neut"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&amp;value=0">{$memprofile[\'neutreps\']}</a></span></dd>
+</dl>
+<dl class="negative">
+  <dt><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&amp;value=-1">Negative Feedback</a></dt>
+  <dd><span class="badge badge-neg"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$memprofile[\'uid\']}&amp;value=-1">{$memprofile[\'negreps\']}</a></span></dd>
+</dl>
+<div class="postbit_buttons tfoot">
 {$feedbacklink}
-</td>
-</tr>
-</table>';
+<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">View Feedback</a>
+</div>
+</div>
+</div>
+<br/>';
 
     $new_template['tradefeedback_confirm_delete'] = '<html>
 <head>
@@ -132,17 +144,25 @@
 </head>
 <body>
 {$header}
+<div class="faux-table">
+<div class="thead">Deleting Feedback</div>
 <form action="{$mybb->settings[\'bburl\']}/tradefeedback.php" method="post">
 {$mypostkey}
 <input type="hidden" name="action" value="delete" />
 <input type="hidden" name="fid" value="{$mybb->input[\'fid\']}" />
-Are You Sure? <select name="confirm">
+<div class="cf">
+<p>
+Are You Sure? 
+</p>
+<select name="confirm" class="float_left">
 <option value="0" selected="selected">No</option>
 <option value="1">Yes</option>
 </select>
-<br />
-<input type="submit" value="Go" />
+<input type="submit" class="button float_left" value="Go" />
 </form>
+</div>
+</div>
+<br/>
 {$footer}
 </body>
 </html>';
@@ -156,40 +176,52 @@ $new_template['tradefeedback_give_form'] = '<html>
 {$header}
 <form action="{$mybb->settings[\'bburl\']}/tradefeedback.php" method="post">
 {$mypostkey}
+<div class="faux-table">
+<div class="thead">Give Feedback</div>
 <input type="hidden" name="fid" value="{$mybb->input[\'fid\']}" />
 <input type="hidden" name="uid" value="{$mybb->input[\'uid\']}" />
 <input type="hidden" name="action" value="{$action}" />
-Your role: <select name="type">
+<div class="formLayout">
+<div class="cf">
+<label>Your role:</label>
+<select name="type">
 <option value="trader" {$traderselect}>Trader</option>
 <option value="buyer"  {$buyerselect}>Buyer</option>
 <option value="seller" {$sellerselect}>Seller</option>
 </select>
-<br />
-Rating: <select name="value">
+</div>
+<div class="cf">
+<label>Rating: </label>
+<select name="value">
 {$repselect}
 <option value="1">Positive</option>
 <option value="0">Neutral</option>
 <option value="-1">Negative</option>
 </select>
-<br />
-Link to thread: <input type="text" name="threadlink" value="{$threadlink_value}" />
-<br />
-Comments: <textarea name="comments" rows="5" cols="70">{$feedback[\'comments\']}</textarea>
-<br />
-<input type="submit" value="Add Feedback" />
+</div>
+<div class="cf">
+<label>Link to thread:</label>
+ <input type="text" class="textbox" name="threadlink" value="{$threadlink_value}" />
+</div>
+<div class="cf">
+<label>Comments: </label>
+<textarea name="comments" rows="5" cols="70">{$feedback[\'comments\']}</textarea>
+</div>
+</div>
+<div class="postbit_buttons tfoot cf">
+<input type="submit" class="button" value="Add Feedback" />
+</div>
+</div>
 </form>
 {$footer}
 </body>
 </html>';
 
-    $new_template['tradefeedback_mod'] = '<br />
-<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=edit&fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}&amp;uid={$mybb->input[\'uid\']}">Edit</a>
-<br />
-<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action={$approvedlinkpart}&fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">{$approvedtext}</a>
-<br />
-<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=delete&fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">Delete</a>';
+$new_template['tradefeedback_mod'] = '<li><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=edit&amp;fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}&amp;uid={$mybb->input[\'uid\']}">Edit</a></li>
+<li><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action={$approvedlinkpart}&amp;fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">{$approvedtext}</a></li>
+<li><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=delete&amp;fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">Delete</a></li>';
 
-$new_template['tradefeedback_report'] = '<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=report&amp;fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">Report</a>';
+$new_template['tradefeedback_report'] = '<li><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=report&amp;fid={$feedback[\'fid\']}&amp;my_post_key={$mybb->post_code}">Report</a></li>';
 
 $new_template['tradefeedback_report_form'] = '<html>
 <head>
@@ -202,8 +234,18 @@ $new_template['tradefeedback_report_form'] = '<html>
 {$mypostkey}
 <input type="hidden" name="action" value="report" />
 <input type="hidden" name="fid" value="{$mybb->input[\'fid\']}" />
-Your Reason For Reporting: <textarea name="reason" rows="5" cols="70"></textarea><br />
-<input type="submit" value="Report" />
+<div class="faux-table">
+<div class="thead">Report Feedback</div>
+<div class="formLayout">     
+<div class="cf">
+<label>Your Reason For Reporting </label>
+<textarea name="reason" rows="5" cols="70"></textarea>
+</div>
+</div>
+<div class="postbit_buttons tfoot cf">
+<input type="submit" class="button" value="Report" />
+</div>
+</div>
 </form>
 <br />
 {$footer}
@@ -217,52 +259,72 @@ $new_template['tradefeedback_view_page'] = '<html>
 </head>
 <body>
 {$header}
-<div id="feedback_stats_container">
-<div  class="left_feedback"><b>Feedback Stats for {$receiverusername}</b></div>
-<div class="right_feedback"><b>Contact</b></div>
-<br class="clear" />
-<div class="left_feedback">Positive: <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=1">{$posreps}</div>
-<div class="right_feedback"><a href="{$mybb->settings[\'bburl\']}/member.php?action=profile&amp;uid={$mybb->input[\'uid\']}">View Profile</a></div>
-<br class="clear" />
-<div class="left_feedback">Neutral: <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=0">{$neutreps}</a></div>
-<div class="right_feedback"><a href="{$mybb->settings[\'bburl\']}/private.php?action=send&amp;uid={$mybb->input[\'uid\']}">Send PM</a></div>
-<br class="clear" />
-<div class="left_feedback">Negative: <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=-1">{$negreps}</a></div>
-<br class="clear" />
-<div class="left_feedback">Total: <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}">{$totalreps}</a></div>
-<br class="clear" />
+<div class="faux-table">
+<div class="thead">Feedback Stats for {$receiverusername}</div>
+<div class="feedback">
+<dl>
+  <dt>Total Feedback</dt>
+  <dd><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}"><span class="badge"><span class="subtext">View all feedback</span>{$totalreps}</span></a></dd>
+</dl>
+<dl class="positive">
+  <dt>Positive Feedback</dt>
+  <dd><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=1"><span class="badge badge-pos"><span class="subtext">View all positive feedback  </span>{$posreps}</span></a></dd>
+</dl>
+<dl class="neutral">
+  <dt>Neutral Feedback</dt>
+  <dd><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=0"><span class="badge badge-neut"><span class="subtext">View all neutral feedback</span>{$neutreps}</span></a></dd>
+</dl>
+<dl class="negative">
+  <dt>Negative Feedback</dt>
+  <dd><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?uid={$mybb->input[\'uid\']}&amp;value=-1"><span class="badge badge-neg"><span class="subtext">View all negative feedback</span>{$negreps}</span></a></dd>
+</dl>
+<div class="postbit_buttons tfoot">
+<a class="postbit_pm" href="{$mybb->settings[\'bburl\']}/private.php?action=send&amp;uid={$mybb->input[\'uid\']}">Send PM</a>
+<a class="postbit_profile" href="{$mybb->settings[\'bburl\']}/member.php?action=profile&amp;uid={$mybb->input[\'uid\']}">View Profile</a>
+<a class="postbit_quote" href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=give&amp;uid={$mybb->input[\'uid\']}">Submit feedback for {$receiverusername}</a>
+<a href="javascript:;" id="trade_modes">Change View</a>
 </div>
-<br />
-<br />
-<div id="givebar">
-<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=give&amp;uid={$mybb->input[\'uid\']}">Submit feedback for {$receiverusername}</a>
 </div>
-<hr />
-<div id="valuebar">
-<a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">View All Feedback</a>
-| <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=seller">View Seller Feedback</a>
-| <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=buyer">View Buyer Feedback</a>
-| <a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=trader">View Trade Feedback</a>
 </div>
-<hr />
-<br />
-<table width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr class="trow">
-<th class="thead" colspan="{$colspan}" border="0">Feedback for {$receiverusername}</th>
-</tr>
+<br/>
+<div class="container-stats">
+<div class="faux-table">
+<div class="thead">Feedback for {$receiverusername}</div>
+<table width="100%" cellpadding="1" cellspacing="0" border="0">
 <tr>
-<th class="thead">Rating</th>
-<th class="thead" width="50%">Comments</th>
-<th class="thead">From</th>
+<th class="tcat" width="1">Rating</th>
+<th class="tcat" width="50%">Comments</th>
+<th class="tcat">From</th>
 {$detailcolumn}
-<th class="thead">Date</th>
-<th class="thead">Options</th>
+<th class="tcat">Date</th>
+<th class="tcat">Options</th>
 </tr>
 {$tradefeedback}
 {$noresults}
 </table>
+<div class="postbit_buttons tfoot">
+{$pagination}
+</div>
+</div>
+</div>
 <br />
-{$footer}';
+{$footer}
+<div id="trade_modes_popup" class="smalltext popup_menu" style="display: none;">
+<div class="popup_item_container trow1"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}">View All Feedback</a></div>
+<div class="popup_item_container trow2"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=seller">View Seller Feedback</a></div>
+<div class="popup_item_container trow1"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=buyer">View Buyer Feedback</a></div>
+<div class="popup_item_container trow2"><a href="{$mybb->settings[\'bburl\']}/tradefeedback.php?action=view&amp;uid={$mybb->input[\'uid\']}&amp;type=trader">View Trade Feedback</a></div>
+</div>
+	<script type="text/javascript">
+	// <!--
+		if(use_xmlhttprequest == "1")
+		{
+			$("#trade_modes").popupMenu();
+		}
+	// -->
+	</script>
+</body>
+</html>';
 
 $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 <td class="{$tdclass}"><img src="{$feedback[\'smilyurl\']}" alt="" /></td>
@@ -270,7 +332,7 @@ $new_template['tradefeedback_view_rep'] = '<tr class="trow">
 <td class="{$tdclass}">{$feedback[\'type\']} {$feedback[\'profilelink\']}</td>
 {$detaillink}
 <td class="{$tdclass}">{$feedback[\'dateline\']}</td>
-<td class="{$tdclass}">{$report}{$modbit}<br /></td>
+<td class="{$tdclass}"><ul class="reset">{$report}{$modbit}</ul></td>
 </tr>';
 
 $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action=give&amp;uid={$post[\'uid\']}&amp;tid={$post[\'tid\']}" title="Give Feedback" class="postbit_tradefeedback"><span>Give Feedback</span></a>';
@@ -434,13 +496,15 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
     // MyAlerts Formatter Register
     function trader_alertregister() {
         global $mybb, $lang;
-        
-        if($mybb->user['uid']) {
-            $lang->load('tradefeedback');
+        if(class_exists("MybbStuff_MyAlerts_AlertFormatterManager"))
+        {
+            if($mybb->user['uid']) {
+                $lang->load('tradefeedback');
 
-            $code = 'tradefeedback';
-            $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
-            $formatterManager->registerFormatter(new TradeFeedbackFormatter($mybb, $lang, $code));
+                $code = 'tradefeedback';
+                $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
+                $formatterManager->registerFormatter(new TradeFeedbackFormatter($mybb, $lang, $code));
+            }
         }
     }  
 
@@ -533,7 +597,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
     // Update from the ACP
     function trader_update()
     {
-        global $db, $cache;
+        global $db, $cache, $mybb;
         if($mybb->get_input("action") != "update_trader_plugin")
         {
             return;
@@ -541,7 +605,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         $dbtables = array(
         "trade_feedback" => array(
         "tid" => "INT UNSIGNED NOT NULL DEFAULT 0",
-        "fid" => "INT UNSIGNED NOT NULL DEFAULT 0"
+        "forum_id" => "INT UNSIGNED NOT NULL DEFAULT 0"
         ),
         "usergroups" => array(
         "cantradefeedback" => "INT UNSIGNED NOT NULL DEFAULT 1"
@@ -555,7 +619,7 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
                 $db->query("CREATE TABLE " . TABLE_PREFIX . $table . " ( `id` INT NOT NULL DEFAULT 0 ) ENGINE=Innodb " . $db->build_create_table_collation());
  
             }
-           	$tablekeys = array_keys($value);
+           $tablekeys = array_keys($value);
             foreach($tablekeys as $key)
             {
                 if(!$db->field_exists($key, $table))

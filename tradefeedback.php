@@ -132,7 +132,7 @@ function trader_view_rep($uid=1)
     else
     {
         $colspan = 6;
-        $detailcolumn = "<th class=\"thead\">Detail</th>";
+        $detailcolumn = "<th class=\"tcat\">Detail</th>";
     }
     $url = "tradefeedback.php?action=view&uid=$uid";
     if(isset($mybb->input['value']))
@@ -451,8 +451,9 @@ function trader_edit($fid)
             default:
             break;
         }
-		$feedback['comments'] = htmlspecialchars_uni($mybb->input['comments']);
+	$feedback['comments'] = htmlspecialchars_uni($feedback['comments']);
         eval("\$tradefeedbackform = \"".$templates->get("tradefeedback_give_form")."\";");
         output_page($tradefeedbackform);
     }
 }
+?>
