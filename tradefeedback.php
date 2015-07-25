@@ -176,7 +176,7 @@ function trader_view_rep($uid=1)
     $pages = ceil($total / $perpage);
     if($mybb->input['page'])
     {
-        $pages = intval($mybb->input['page']);
+        $page = intval($mybb->input['page']);
     }
     else
     {
