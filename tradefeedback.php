@@ -2,6 +2,7 @@
 define("IN_MYBB", 1);
 $templatelist = "tradefeedback_page,tradefeedback_form,tradefeedback_give_form,tradefeedback_view_page,tradefeedback_view_rep,tradefeedback_mod,tradefeedback_report,tradefeedback_report_form,tradefeedback_confirm_delete";
 require_once "global.php";
+$lang->load("tradefeedback");
 if(!trader_is_installed())
 {
 	error($lang->feedback_not_installed);
@@ -39,8 +40,6 @@ switch($mybb->input['action'])
 function trader_give_rep($uid=1)
 {
     global $mybb, $db, $tradefeedbackform, $mypostkey, $templates, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
-
     $uid = intval($uid);
     $action = "give";
     if($mybb->user['uid'] == $uid)
@@ -120,8 +119,6 @@ function trader_give_rep($uid=1)
 function trader_view_rep($uid=1)
 {
     global $mybb, $db, $templates, $pagination, $mypostkey, $header, $headerinclude, $footer, $theme, $posreps, $negreps, $neutreps, $totalreps, $lang;
-    $lang->load("tradefeedback");
-
     $uid = intval($uid);
     if(!$uid)
     {
@@ -275,8 +272,6 @@ function trader_view_rep($uid=1)
 function trader_delete_rep($fid)
 {
     global $mybb, $db, $templates, $confirmdelete, $mypostkey, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
-
     $fid = intval($fid);
     if(!$fid)
     {
@@ -319,8 +314,6 @@ function trader_delete_rep($fid)
 function trader_report($fid)
 {
     global $mybb, $db, $templates, $reportform, $mypostkey, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
-
     $fid = intval($fid);
     if(!$fid)
     {
@@ -370,7 +363,6 @@ function trader_report($fid)
 function trader_approve($fid)
 {
     global $mybb, $db, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
     $fid = intval($fid);
     if(!$fid)
     {
@@ -398,7 +390,6 @@ function trader_approve($fid)
 function trader_unapprove($fid)
 {
     global $mybb, $db, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
     $fid = intval($fid);
     if(!$fid)
     {
@@ -426,8 +417,6 @@ function trader_unapprove($fid)
 function trader_edit($fid)
 {
     global $mybb, $db, $tradefeedbackform, $mypostkey, $templates, $header, $headerinclude, $footer, $lang;
-    $lang->load("tradefeedback");
-
     $uid = intval($mybb->input['uid']);
     $action = "edit";
     if($mybb->request_method == "post" && verify_post_check($mybb->input['my_post_key']))
