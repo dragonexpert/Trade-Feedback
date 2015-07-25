@@ -2,6 +2,10 @@
 define("IN_MYBB", 1);
 $templatelist = "tradefeedback_page,tradefeedback_form,tradefeedback_give_form,tradefeedback_view_page,tradefeedback_view_rep,tradefeedback_mod,tradefeedback_report,tradefeedback_report_form,tradefeedback_confirm_delete";
 require_once "global.php";
+if(!trader_is_installed())
+{
+	error($lang->feedback_not_installed);
+}
 $fid = intval($mybb->input['fid']);
 $mypostkey = "<input type=\"hidden\" name=\"my_post_key\" value=\"".$mybb->post_code."\" />";
 switch($mybb->input['action'])
