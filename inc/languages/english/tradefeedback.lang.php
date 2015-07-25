@@ -92,3 +92,4 @@ $l['feedback_invalid_user'] = 'Invalid user.';
 $l['feedback_give_self'] = 'You can\'t give yourself feedback.';
 $l['feedback_wait_24'] = 'You must wait 24 hours between giving the same user feedback.';
 $l['feedback_already_reported'] = 'This feedback has already been reported.';
+$l['feedback_not_installed'] = 'Trade Feedback is not installed.';
