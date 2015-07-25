@@ -517,19 +517,21 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
     // MyAlerts Function
     function trader_myalerts($toid, $fid)
     {
-        
-        $alertType = MybbStuff_MyAlerts_AlertTypeManager::getInstance()->getByCode('tradefeedback');
-        $alert = new MybbStuff_MyAlerts_Entity_Alert($toid, $alertType, 0);
-                $alert->setExtraDetails(
-                array(
-                    'toid'       => $toid,
-                    'fid'       => $fid                
-                )); 
-        MybbStuff_MyAlerts_AlertManager::getInstance()->addAlert($alert);
+        if(class_exists("MybbStuff_MyAlerts_AlertTypeManager"))
+        {
+        	$alertType = MybbStuff_MyAlerts_AlertTypeManager::getInstance()->getByCode('tradefeedback');
+        	$alert = new MybbStuff_MyAlerts_Entity_Alert($toid, $alertType, 0);
+                	$alert->setExtraDetails(
+                	array(
+                    	'toid'       => $toid,
+                    	'fid'       => $fid                
+                	)); 
+        	MybbStuff_MyAlerts_AlertManager::getInstance()->addAlert($alert);
+        }
     }
 
     // MyAlerts Trade Feedback Formatter
-    if(class_exists("MybbStuff_MyAlerts_Formatter_AbstractFormatter")){
+    if(class_exists("MybbStuff_MyAlerts_Formatter_AbstractFormatter")) {
 
         class TradeFeedbackFormatter extends MybbStuff_MyAlerts_Formatter_AbstractFormatter
         {
