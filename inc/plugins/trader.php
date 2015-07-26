@@ -347,7 +347,160 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
         find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
         find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
-    }
+		
+		$css = array(
+	"name" => "trade.css",
+	"tid" => 1,
+	"attachedto" => "tradefeedback.php|member.php",
+	"stylesheet" => ".faux-table {
+    border-radius: 6px;
+    border: 1px solid hsl(0, 0%, 80%);
+    padding: 1px;
+}
+.postbit_buttons.tfoot {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    min-height: 20px;
+}
+.feedback dl {
+    border-bottom: 1px solid #E8E8E8;
+    padding: 0.5em;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+.feedback dt {
+    float: left;
+    clear: left;
+    font-weight: bold;
+}
+
+.feedback dd {
+    margin: 5px 0 0 110px;
+    padding: 0 0 0.5em 0;
+    text-align: right;
+}
+.negative,
+.negative a,
+.negative a:visited {
+    color: red;
+}
+.positive,
+.positive a,
+.positive a:visited {
+    color: green;
+}
+.neutral,
+.neutral a,
+.neutral a:visited {
+    color: grey;
+}
+.badge {
+    padding: 4px 8px;
+    border-radius: 16px;
+    background-color: black;
+    font-size: 11px;
+}
+.badge a,
+.badge a:visited {
+    color: white;
+    font-weight: 700;
+}
+.badge-neg {
+    background-color: red;
+}
+.badge-neut {
+    background-color: gray;
+}
+.badge-pos {
+    background-color: green;
+}
+a .badge .subtext {
+    display: none;
+    color: white;
+    margin-right: 5px;
+}
+.feedback dl:hover > dd a .badge .subtext,
+.badge:hover > .subtext {
+    display: inline-block;
+}
+dl:hover > .subtext {
+    display: inline-block;
+}
+a.badge,
+a:link .badge,
+a:visited .badge {
+    color: white
+}
+#trade_modes_popup.popup_menu .popup_item_container {
+    padding: 5px;
+}
+.popup_item_container.trow1:hover a,
+.popup_item_container.trow2:hover a {
+    color: #333;
+}
+.popup_item_container:first-of-type {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+.popup_item_container:last-of-type {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+.container-stats tr:last-of-type>td:last-child {
+    border-bottom-right-radius: 6px;
+}
+.container-stats tr:last-of-type>td:first-child {
+    border-bottom-left-radius: 6px;
+}
+ul.reset {
+    list-style-type: none;
+    padding-left: 5px;
+}
+.formLayout {
+    padding: 8px 0;
+}
+.formLayout label,
+.formLayout input,
+.formLayout select {
+    display: block;
+    width: 200px;
+    float: left;
+    margin-bottom: 10px;
+}
+.formLayout label {
+    width: 160px;
+    text-align: right;
+    padding-right: 20px;
+    padding-top: 4px;
+}
+.cf:before,
+.cf:after {
+    content: \" \";
+    display: table;
+}
+.cf:after {
+    clear: both;
+}
+/**
+ * For IE 6/7 only
+ * Include this rule to trigger hasLayout and contain floats.
+ */
+
+.cf {
+    *zoom: 1;
+}",
+    "cachefile" => $db->escape_string(str_replace('/', '', trade.css)),
+	"lastmodified" => TIME_NOW
+	);
+		require_once MYBB_ADMIN_DIR."inc/functions_themes.php";
+		$sid = $db->insert_query("themestylesheets", $css);
+		$db->update_query("themestylesheets", array("cachefile" => "css.php?stylesheet=".$sid), "sid = '".$sid."'", 1);
+		$tids = $db->simple_select("themes", "tid");
+		while($theme = $db->fetch_array($tids))
+		{
+			update_theme_stylesheet_list($theme['tid']);
+		}
+	}
 
     function trader_deactivate()
     {
@@ -359,6 +512,14 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
         find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
         find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
+		
+		require_once MYBB_ADMIN_DIR."inc/functions_themes.php";
+		$db->delete_query("themestylesheets", "name = 'trade.css'");
+		$query = $db->simple_select("themes", "tid");
+		while($theme = $db->fetch_array($query))
+		{
+			update_theme_stylesheet_list($theme['tid']);
+		}
     }
 
     function trader_uninstall()
