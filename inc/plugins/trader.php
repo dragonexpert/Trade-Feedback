@@ -347,6 +347,8 @@ $new_template['tradefeedback_postbit_link'] = '<a href="tradefeedback.php?action
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
         find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
         find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_rep\']}')."#i", '{$post[\'button_rep\']}{$post[\'button_tradefeedback\']}');
+		// Insert code into profile template
+		find_replace_templatesets("member_profile", "#".preg_quote('{\$profilefields}')."#i", '{\$traderinfo}{\$profilefields}');
 		
 		$css = array(
 	"name" => "trade.css",
@@ -512,6 +514,9 @@ ul.reset {
         include MYBB_ROOT."/inc/adminfunctions_templates.php";
         find_replace_templatesets("postbit", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
         find_replace_templatesets("postbit_classic", "#".preg_quote('{$post[\'button_tradefeedback\']}')."#i", '', 0);
+		
+		// Remove code from profile template
+		find_replace_templatesets("member_profile", "#".preg_quote('{\$traderinfo}')."#i", '', 0);
 		
 		require_once MYBB_ADMIN_DIR."inc/functions_themes.php";
 		$db->delete_query("themestylesheets", "name = 'trade.css'");
