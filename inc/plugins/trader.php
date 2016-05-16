@@ -4,6 +4,9 @@
     # Option to moderate, default no moderation required
 
     $plugins->add_hook("postbit", "trader_postbit");
+	$plugins->add_hook("postbit_prev","trader_postbit");
+	$plugins->add_hook("postbit_pm","trader_postbit");
+	$plugins->add_hook("postbit_announcement","trader_postbit");
     $plugins->add_hook("member_profile_end", "trader_member_profile");
     $plugins->add_hook("usercp_start", "trader_usercp");
     $plugins->add_hook("fetch_wol_activity_end", "trader_wol");
